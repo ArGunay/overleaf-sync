@@ -20,6 +20,7 @@ PROJECT_URL = "https://www.overleaf.com/project"  # The dashboard URL
 # The URL to download all the files in zip format
 DOWNLOAD_URL = "https://www.overleaf.com/project/{}/download/zip"
 UPLOAD_URL = "https://www.overleaf.com/project/{}/upload"  # The URL to upload files
+FOLDER_URL = "https://www.overleaf.com/project/{}/folder"  # The URL to create folders
 
 
 class OverleafClient(object):
@@ -92,6 +93,35 @@ class OverleafClient(object):
                      stream=True, cookies=self._cookie)
         return r.content
 
+    def create_folder(self, project_id, parent_folder_id, folder_name):
+        """
+        Create a new folder in a project
+
+        Params:
+        project_id: the id of the project
+        parent_folder_id: the id of the parent folder, root is the project_id
+        folder_name: how the folder will be named
+
+        Returns: folder id or None
+        """
+
+        params = {
+            "parent_folder_id": parent_folder_id,
+            "_csrf": self._csrf,
+            "name": folder_name
+        }
+        r = reqs.post(FOLDER_URL.format(project_id),
+                      cookies=self._cookie, json=params)
+
+        if r.status_code == str(200) and json.loads(r.content)["_id"]:
+            return json.loads(r.content)["_id"]
+        elif r.status_code == str(400):
+            # Folder already exists
+            return
+
+
+        return None
+
     def upload_file(self, project_id, file_name, file_size, file):
         """
         Upload a file to the project
@@ -105,9 +135,20 @@ class OverleafClient(object):
         Returns: True on success, False on fail
         """
 
+        folder_id = format(int(project_id, 16) - 1, 'x')
+
+        # Check if the file name contains path separators
+        if "/" in file_name:
+            folders = file_name.split("/")[:-1]  # Remove last item since this is the file name
+
+            for folder_name in folders:
+                folder_id = self.create_folder(project_id, folder_id, folder_name)
+
+            file_name = file_name.split("/")[-1]
+
         # To get the folder_id, we convert the hex project_id to int, subtract 1 and convert it back to hex
         params = {
-            "folder_id": format(int(project_id, 16) - 1, 'x'),
+            "folder_id": folder_id,
             "_csrf": self._csrf,
             "qquuid": str(uuid.uuid4()),
             "qqfilename": file_name,

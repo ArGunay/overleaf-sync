@@ -140,7 +140,8 @@ def sync_func(files_from, create_file_at_to, from_exists_in_to, from_equal_to_to
         if from_exists_in_to(name):
             if not from_equal_to_to(name):
                 if not from_newer_than_to(name) and not click.confirm(
-                        '\n-> Warning: last-edit time stamp of file <%s> from [%s] is older than [%s].\nContinue to overwrite with an older version?' % (name, from_name, to_name)):
+                        '\n-> Warning: last-edit time stamp of file <%s> from [%s] is older than [%s].\nContinue to '
+                        'overwrite with an older version?' % (name, from_name, to_name)):
                     not_sync_list.append(name)
                     continue
 
@@ -151,8 +152,7 @@ def sync_func(files_from, create_file_at_to, from_exists_in_to, from_equal_to_to
             newly_add_list.append(name)
 
     # remove all folders
-    newly_add_list = [
-        item for item in newly_add_list if not os.path.isdir(item)]
+    # newly_add_list = [item for item in newly_add_list if not os.path.isdir(item)]
 
     click.echo(
         "\n[NEW] Following new file(s) created on [%s]" % to_name)
@@ -167,12 +167,12 @@ def sync_func(files_from, create_file_at_to, from_exists_in_to, from_equal_to_to
         create_file_at_to(name)
 
     click.echo(
-        "\n[SYNC] Following file(s) being of latest version")
+        "\n[SYNC] Following file(s) are up to date")
     for name in synced_list:
         click.echo("\t%s" % name)
 
     click.echo(
-        "\n[SKIP] Following file(s) version on [%s] fall behind of [%s], but skipped as per your request" % (from_name, to_name))
+        "\n[SKIP] Following file(s) on [%s] have not been synced to [%s]" % (from_name, to_name))
     for name in not_sync_list:
         click.echo("\t%s" % name)
 
@@ -199,9 +199,9 @@ def execute_action(action, progress_message, success_message, fail_message):
 
 
 def olignore_keep_list(sync_path, olignore_path):
-    """The list of files to keep synced, with support for subfolders.
-
-    Should only be called when sync from local to remote.
+    """
+    The list of files to keep synced, with support for subfolders.
+    Should only be called when syncing from local to remote.
     """
     # get list of files recursively (ignore .* files)
     files = glob.glob('**', recursive=True)
@@ -209,14 +209,10 @@ def olignore_keep_list(sync_path, olignore_path):
     olignore_file = os.path.join(sync_path, olignore_path)
     click.echo("="*40)
     if not os.path.isfile(olignore_file):
-        if not click.confirm('\nNotice: olignore file not exist, will sync all items. Continue?'):
-            click.echo("\nNo file will be synced.")
-            return []
-        else:
-            click.echo("syncing all items")
-            keep_list = files
+        click.echo("\nNotice: .olignore file does not exist, will sync all items.")
+        keep_list = files
     else:
-        click.echo("\nolignore: using %s to filter items" % olignore_file)
+        click.echo("\n.olignore: using %s to filter items" % olignore_file)
         with open(olignore_file, 'r') as f:
             ignore_pattern = f.read().splitlines()
 
